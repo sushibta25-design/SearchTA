@@ -30,6 +30,19 @@ jobs:
           assert result["provider"] == "google-places-new"
           print(result)
           PY
+      - name: Package runnable source
+        run: |
+          mkdir -p dist/SearchTA
+          cp app.py requirements.txt README.md .env.example dist/SearchTA/
+          cd dist
+          zip -r SearchTA-V1.zip SearchTA
+
+      - name: Upload runnable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SearchTA-V1
+          path: dist/SearchTA-V1.zip
+
       - name: FastAPI smoke test
         run: |
           python - <<'PY'
