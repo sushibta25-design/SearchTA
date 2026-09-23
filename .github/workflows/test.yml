@@ -1,0 +1,46 @@
+name: Test SearchTA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Compile
+        run: python -m py_compile app.py
+      - name: Import and health test
+        run: |
+          python - <<'PY'
+          import asyncio
+          import app
+          result = asyncio.run(app.health())
+          assert result["ok"] is True
+          assert result["provider"] == "google-places-new"
+          print(result)
+          PY
+      - name: FastAPI smoke test
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          import app
+          c = TestClient(app.app)
+          r = c.get("/health")
+          assert r.status_code == 200, r.text
+          assert r.json()["ok"] is True
+          r = c.get("/search?lat=10.77&lng=106.69")
+          assert r.status_code == 500
+          assert "GOOGLE_MAPS_API_KEY" in r.text
+          print("smoke ok")
+          PY
